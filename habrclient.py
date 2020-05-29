@@ -168,7 +168,6 @@ class HabrClient(BaseParser):
     def sort_words(_dict):
         return {k: v for k, v in sorted(_dict.items(), key=lambda item: item[1], reverse=True)}
 
-
     def __repr__(self):
         return f'Client for {self.url}'
 
