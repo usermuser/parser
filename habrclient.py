@@ -107,8 +107,6 @@ class HabrClient(BaseParser):
         self.visited_urls = []
         self.number = 0
 
-
-
     # def save_pages(self, _urls):
     #     _urls_to_add = []
     #     for url in _urls:
@@ -150,11 +148,12 @@ class HabrClient(BaseParser):
 
     def run(self):
         self.clean_words_file()
-        while self.depth > 0:
+        while self.depth > 0 and self.pages_to_visit > 0:
             urls = self.get_urls()
             if urls:
                 _result = []
                 for url in urls:
+                    time.sleep(0.3)
                     page_content = self.get(url)
                     _result.extend(self.extract_links_from_page(page_content))
                     self.save_page(url, page_content)
@@ -162,6 +161,11 @@ class HabrClient(BaseParser):
                     words_as_list = self.filter_words(page_content)
                     print(words_as_list)
                     self.add_to_words_file(words_as_list)
+
+                    self.pages_to_visit -= 1
+                    if self.pages_to_visit <= 0:
+                        # do steps to drop counters like depth, urls list, etc
+                        return
 
                 self.depth -= 1
                 self.urls.append(_result)
