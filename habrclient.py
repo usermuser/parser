@@ -104,25 +104,26 @@ class HabrClient(BaseParser):
         self.prepositions = ('на', 'в')
         self.frequency = {}
         self.words = WORDS_FILE
+        self.visited_urls = []
 
 
 
-    def save_pages(self, _urls):
-        _urls_to_add = []
-        for url in _urls:
-            _response = self.get(url)
-            _pagename = urlparse(url).netloc
-            self.write_to_file(_pagename, _response.text)
-            self.pages_to_parse -= 1
-
-            if self.pages_to_parse <= 0:
-                return
-
-            if self.depth > 0:
-                _urls = self.extract_links_from_page(_response)
-                _urls_to_add.extend(_urls)
-        self.urls.append(_urls_to_add)
-        return
+    # def save_pages(self, _urls):
+    #     _urls_to_add = []
+    #     for url in _urls:
+    #         _response = self.get(url)
+    #         _pagename = urlparse(url).netloc
+    #         self.write_to_file(_pagename, _response.text)
+    #         self.pages_to_parse -= 1
+    #
+    #         if self.pages_to_parse <= 0:
+    #             return
+    #
+    #         if self.depth > 0:
+    #             _urls = self.extract_links_from_page(_response)
+    #             _urls_to_add.extend(_urls)
+    #     self.urls.append(_urls_to_add)
+    #     return
 
     def save_page(self, _url, _page_content):
         """Save url as html page
@@ -154,7 +155,9 @@ class HabrClient(BaseParser):
                     page_content = self.get(url)
                     _result.append(self.extract_links_from_page(page_content))
                     self.save_page(url, page_content)
+                    self.visited_urls.append(url)
                     words_as_list = self.filter_words(page_content)
+                    print(words_as_list)
                     self.add_to_words_file(words_as_list)
 
                 self.depth -= 1
@@ -172,7 +175,7 @@ class HabrClient(BaseParser):
 
     def filter_words(self, _page_content):
         """Remove prepositions from page content"""
-        _soup = BeautifulSoup(_page_content, 'lxml')
+        _soup = BeautifulSoup(_page_content.text, 'lxml')
         _text = _soup.text.lower()
         for preposition in self.prepositions:
             _text = _text.replace(preposition, '')
@@ -183,7 +186,8 @@ class HabrClient(BaseParser):
         self.logger.info(f'[INFO] Going to write words to file {self.words}')
         with open(self.words, 'a+') as file:
             for word in _words_as_list:
-                file.write(f'{word}\n')
+                if word not in self.visited_urls:
+                    file.write(f'{word}\n')
         return
 
     @staticmethod
@@ -191,7 +195,7 @@ class HabrClient(BaseParser):
         _file_path = f'{PAGES_FOLDER}/{_filename}.html'
         with open(_file_path, mode='w+') as file:
             try:
-                file.write(_page_content)
+                file.write(_page_content.text)
                 logging.info(f'Page content succesfully written to {file}')
             except Exception:
                 logging.exception(f'[ERROR] Couldn\'t write to file {file}')
@@ -221,12 +225,12 @@ if __name__ == '__main__':
     client = HabrClient()
     client.run()
 
-    # *** basic tests ***
-    alist = []
-    for i in client.frequency.items():
-        alist.append(i)
-        if len(alist) == 10:
-            break
-
-    for item in alist:
-        print(item)
+    # # *** basic tests ***
+    # alist = []
+    # for i in client.frequency.items():
+    #     alist.append(i)
+    #     if len(alist) == 10:
+    #         break
+    #
+    # for item in alist:
+    #     print(item)
