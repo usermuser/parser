@@ -105,14 +105,7 @@ class HabrClient(BaseParser):
         self.frequency = {}
         self.words = WORDS_FILE
 
-    def extract_links(self, response):
-        result = []
-        soup = BeautifulSoup(response.text, 'lxml')
-        for raw_link in soup.find_all('a'):
-            link = raw_link.get('href')
-            if link.startswith(self.url) and link != self.url:
-                result.append(link)
-        return result
+
 
     def save_pages(self, _urls):
         _urls_to_add = []
@@ -126,7 +119,7 @@ class HabrClient(BaseParser):
                 return
 
             if self.depth > 0:
-                _urls = self.extract_links(_response)
+                _urls = self.extract_links_from_page(_response)
                 _urls_to_add.extend(_urls)
         self.urls.append(_urls_to_add)
         return
@@ -140,25 +133,42 @@ class HabrClient(BaseParser):
         self.write_to_file(_filename, _page_content)
         return
 
-    def urls_to_save(self):
+    def get_urls(self):
+        """Retrieve urls from self.urls
+
+        we store all urls to work on in self.url
+        """
         try:
             _urls_to_save = self.urls.pop()  # [ [url1, url2], [url2.1, url2.2] ... ]
             return _urls_to_save
         except IndexError:  # since we using list of lists in self.urls IndexError means 'we done'
-            self.logger.info(f'Все страницы сохранены')
+            self.logger.info(f'All pages saved')
             return
 
     def run(self):
         while self.depth > 0:
-            urls = self.urls_to_save()
+            urls = self.get_urls()
             if urls:
                 _result = []
                 for url in urls:
                     page_content = self.get(url)
+                    _result.append(self.extract_links_from_page(page_content))
                     self.save_page(url, page_content)
                     words_as_list = self.filter_words(page_content)
-                    self.add_to_file(words_as_list)
+                    self.add_to_words_file(words_as_list)
+
+                self.depth -= 1
+                self.urls.append(_result)
         return
+
+    def extract_links_from_page(self, response):
+        result = []
+        soup = BeautifulSoup(response.text, 'lxml')
+        for raw_link in soup.find_all('a'):
+            link = raw_link.get('href')
+            if link.startswith(self.url) and link != self.url:
+                result.append(link)
+        return result
 
     def filter_words(self, _page_content):
         """Remove prepositions from page content"""
@@ -169,7 +179,7 @@ class HabrClient(BaseParser):
         _words_as_list = re.findall(r'\w+', _text)
         return _words_as_list
 
-    def add_to_file(self, _words_as_list: List) -> None:
+    def add_to_words_file(self, _words_as_list: List) -> None:
         self.logger.info(f'[INFO] Going to write words to file {self.words}')
         with open(self.words, 'a+') as file:
             for word in _words_as_list:
@@ -206,16 +216,17 @@ class HabrClient(BaseParser):
     def __repr__(self):
         return f'Client for {self.url}'
 
-    if __name__ == '__main__':
-        client = HabrClient()
-        client.run()
 
-        # *** basic tests ***
-        alist = []
-        for i in client.frequency.items():
-            alist.append(i)
-            if len(alist) == 10:
-                break
+if __name__ == '__main__':
+    client = HabrClient()
+    client.run()
 
-        for item in alist:
-            print(item)
+    # *** basic tests ***
+    alist = []
+    for i in client.frequency.items():
+        alist.append(i)
+        if len(alist) == 10:
+            break
+
+    for item in alist:
+        print(item)
