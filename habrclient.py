@@ -11,7 +11,7 @@ from settings import (
     DEPTH,
     URL,
     DELAY,
-    PAGES_TO_PARSE,
+    PAGES_TO_VISIT,
     RETRY_COUNT,
     RETRY_TIMEOUT,
     RETRY,
@@ -93,7 +93,7 @@ class BaseParser:
 
 class HabrClient(BaseParser):
 
-    def __init__(self, depth=DEPTH, pages_to_parse=PAGES_TO_PARSE):
+    def __init__(self, depth=DEPTH, pages_to_parse=PAGES_TO_VISIT):
         super().__init__()
         self.depth = depth
         self.pages = List
@@ -105,6 +105,7 @@ class HabrClient(BaseParser):
         self.frequency = {}
         self.words = WORDS_FILE
         self.visited_urls = []
+        self.number = 0
 
 
 
@@ -131,7 +132,8 @@ class HabrClient(BaseParser):
         but before remove
         """
         _filename = urlparse(_url).netloc
-        self.write_to_file(_filename, _page_content)
+        self.write_to_file(_filename, _page_content, self.number)
+        self.number += 1
         return
 
     def get_urls(self):
@@ -147,13 +149,14 @@ class HabrClient(BaseParser):
             return
 
     def run(self):
+        self.clean_words_file()
         while self.depth > 0:
             urls = self.get_urls()
             if urls:
                 _result = []
                 for url in urls:
                     page_content = self.get(url)
-                    _result.append(self.extract_links_from_page(page_content))
+                    _result.extend(self.extract_links_from_page(page_content))
                     self.save_page(url, page_content)
                     self.visited_urls.append(url)
                     words_as_list = self.filter_words(page_content)
@@ -169,9 +172,13 @@ class HabrClient(BaseParser):
         soup = BeautifulSoup(response.text, 'lxml')
         for raw_link in soup.find_all('a'):
             link = raw_link.get('href')
-            if link.startswith(self.url) and link != self.url:
+            print(f'-------------  link: {link}, \n raw_link: {raw_link}')
+            if not link:
+                continue
+            if link.startswith(self.url) and link not in self.visited_urls:
                 result.append(link)
-        return result
+        result = set(result)
+        return list(result)
 
     def filter_words(self, _page_content):
         """Remove prepositions from page content"""
@@ -191,8 +198,8 @@ class HabrClient(BaseParser):
         return
 
     @staticmethod
-    def write_to_file(_filename, _page_content):
-        _file_path = f'{PAGES_FOLDER}/{_filename}.html'
+    def write_to_file(_filename, _page_content, _number):
+        _file_path = f'{PAGES_FOLDER}/{_filename}_{_number}.html'
         with open(_file_path, mode='w+') as file:
             try:
                 file.write(_page_content.text)
@@ -217,12 +224,18 @@ class HabrClient(BaseParser):
     def sort_words(_dict):
         return {k: v for k, v in sorted(_dict.items(), key=lambda item: item[1], reverse=True)}
 
+    def clean_words_file(self):
+        with open(self.words, 'w') as file:
+            file.truncate(0)
+        return
+
     def __repr__(self):
         return f'Client for {self.url}'
 
 
 if __name__ == '__main__':
     client = HabrClient()
+
     client.run()
 
     # # *** basic tests ***
