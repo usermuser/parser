@@ -6,6 +6,7 @@ PAGES_TO_PARSE = 5
 URL = 'https://habr.com/ru/'
 BASE_DIR = os.getcwd()
 PAGES_FOLDER = os.path.join(BASE_DIR, 'saved_pages')
+WORDS_FILE = 'words.txt'
 print(f'pages folder: {PAGES_FOLDER}')
 
 # RETRY STRATEGY

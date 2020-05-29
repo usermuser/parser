@@ -19,6 +19,7 @@ from settings import (
     RETRY_CODES,
     PAGES_FOLDER,
     BASE_DIR,
+    WORDS_FILE,
 
 )
 
@@ -102,17 +103,7 @@ class HabrClient(BaseParser):
         self.files_to_read = []
         self.prepositions = ('на', 'в')
         self.frequency = {}
-
-    def write_to_file(self, _filename, _page_content):
-        _file_path = f'{PAGES_FOLDER}/{_filename}.html'
-        with open(_file_path, mode='w+') as file:
-            try:
-                file.write(_page_content)
-                logging.info(f'Page content succesfully written to {file}')
-                self.files_to_read.append(_file_path)
-            except Exception:
-                logging.exception(f'[ERROR] Couldn\'t write to file {file}')
-        return
+        self.words = WORDS_FILE
 
     def extract_links(self, response):
         result = []
@@ -140,17 +131,61 @@ class HabrClient(BaseParser):
         self.urls.append(_urls_to_add)
         return
 
-    def run(self):
+    def save_page(self, _url, _page_content):
+        """Save url as html page
+
+        but before remove
+        """
+        _filename = urlparse(_url).netloc
+        self.write_to_file(_filename, _page_content)
+        return
+
+    def urls_to_save(self):
         try:
-            self.depth -= 1
-            urls_to_save = self.urls.pop()
-            self.save_pages(urls_to_save)
-        except IndexError:  # since we using list of lists in self.urls
+            _urls_to_save = self.urls.pop()  # [ [url1, url2], [url2.1, url2.2] ... ]
+            return _urls_to_save
+        except IndexError:  # since we using list of lists in self.urls IndexError means 'we done'
             self.logger.info(f'Все страницы сохранены')
-            # Open files
-            # Count words
-        self.count_words()  # todo change to count only words that we need
-        return self.frequency
+            return
+
+    def run(self):
+        while self.depth > 0:
+            urls = self.urls_to_save()
+            if urls:
+                _result = []
+                for url in urls:
+                    page_content = self.get(url)
+                    self.save_page(url, page_content)
+                    words_as_list = self.filter_words(page_content)
+                    self.add_to_file(words_as_list)
+        return
+
+    def filter_words(self, _page_content):
+        """Remove prepositions from page content"""
+        _soup = BeautifulSoup(_page_content, 'lxml')
+        _text = _soup.text.lower()
+        for preposition in self.prepositions:
+            _text = _text.replace(preposition, '')
+        _words_as_list = re.findall(r'\w+', _text)
+        return _words_as_list
+
+    def add_to_file(self, _words_as_list: List) -> None:
+        self.logger.info(f'[INFO] Going to write words to file {self.words}')
+        with open(self.words, 'a+') as file:
+            for word in _words_as_list:
+                file.write(f'{word}\n')
+        return
+
+    @staticmethod
+    def write_to_file(_filename, _page_content):
+        _file_path = f'{PAGES_FOLDER}/{_filename}.html'
+        with open(_file_path, mode='w+') as file:
+            try:
+                file.write(_page_content)
+                logging.info(f'Page content succesfully written to {file}')
+            except Exception:
+                logging.exception(f'[ERROR] Couldn\'t write to file {file}')
+        return
 
     def count_words(self):
         for file_path in self.files_to_read:
@@ -171,17 +206,16 @@ class HabrClient(BaseParser):
     def __repr__(self):
         return f'Client for {self.url}'
 
+    if __name__ == '__main__':
+        client = HabrClient()
+        client.run()
 
-if __name__ == '__main__':
-    client = HabrClient()
-    client.run()
+        # *** basic tests ***
+        alist = []
+        for i in client.frequency.items():
+            alist.append(i)
+            if len(alist) == 10:
+                break
 
-    # *** basic tests ***
-    alist = []
-    for i in client.frequency.items():
-        alist.append(i)
-        if len(alist) == 10:
-            break
-
-    for item in alist:
-        print(item)
+        for item in alist:
+            print(item)
