@@ -114,9 +114,6 @@ class HabrClient(BaseParser):
                 logging.exception(f'[ERROR] Couldn\'t write to file {file}')
         return
 
-    def get_page_content(self, _url):
-        return self.get(_url)
-
     def extract_links(self, response):
         result = []
         soup = BeautifulSoup(response.text, 'lxml')
@@ -127,14 +124,33 @@ class HabrClient(BaseParser):
         return result
 
     def save_pages(self, _urls):
+        _urls_to_add = []
         for url in _urls:
-            page_content = self.get_page_content(url)
-            pagename = urlparse(url).netloc
-            self.write_to_file(pagename, page_content.text)
+            _response = self.get(url)
+            _pagename = urlparse(url).netloc
+            self.write_to_file(_pagename, _response.text)
             self.pages_to_parse -= 1
             if self.pages_to_parse <= 0:
                 return
+
+            if self.depth > 0:
+                _urls = self.extract_links(_response)
+                _urls_to_add.extend(_urls)
+
+        self.urls.append(_urls_to_add)
         return
+
+    def run(self):
+        try:
+            self.depth -= 1
+            urls_to_save = self.urls.pop()
+            self.save_pages(urls_to_save)
+        except IndexError:  # since we using list of lists in self.urls
+            self.logger.info(f'Все страницы сохранены')
+            # Open files
+            # Count words
+        self.count_words() # todo change to count only words that we need
+        return self.frequency
 
     def count_words(self):
         for file_path in self.files_to_read:
@@ -145,19 +161,6 @@ class HabrClient(BaseParser):
                     count = self.frequency.get(word, 0)
                     self.frequency[word] = count + 1
         return
-
-    def run(self):
-        try:
-            urls_to_save = self.urls.pop()
-            self.depth -= 1
-            self.save_pages(urls_to_save)
-        except IndexError:  # since we using list of lists in self.urls
-            self.logger.info(f'Все страницы сохранены')
-            # Open files
-            # Count words
-        self.count_words()
-
-        return self.frequency
 
     def __repr__(self):
         return f'Client for {self.url}'
