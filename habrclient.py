@@ -175,12 +175,13 @@ class HabrClient(BaseParser):
 if __name__ == '__main__':
     client = HabrClient()
     client.run()
-    print('frequency is:', client.frequency, sep='\n')
-    l = []
+
+    # *** basic tests ***
+    alist = []
     for i in client.frequency.items():
-        l.append(i)
-        if len(l) == 10:
+        alist.append(i)
+        if len(alist) == 10:
             break
 
-    for item in l:
+    for item in alist:
         print(item)
