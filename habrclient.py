@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import time
 from urllib.parse import urlparse
 from typing import List
@@ -98,50 +99,65 @@ class HabrClient(BaseParser):
         self.delay = DELAY
         self.pages_to_parse = pages_to_parse
         self.urls = [[self.url]]
+        self.files_to_read = []
+        self.prepositions = ('на', 'в')
+        self.frequency = {}
 
+    def write_to_file(self, _filename, _page_content):
+        _file_path = f'{PAGES_FOLDER}/{_filename}.html'
+        with open(_file_path, mode='w+') as file:
+            try:
+                file.write(_page_content)
+                logging.info(f'Page content succesfully written to {file}')
+                self.files_to_read.append(_file_path)
+            except Exception:
+                logging.exception(f'[ERROR] Couldn\'t write to file {file}')
+        return
+
+    def get_page_content(self, _url):
+        return self.get(_url)
+
+    def extract_links(self, response):
+        result = []
+        soup = BeautifulSoup(response.text, 'lxml')
+        for raw_link in soup.find_all('a'):
+            link = raw_link.get('href')
+            if link.startswith(self.url) and link != self.url:
+                result.append(link)
+        return result
+
+    def save_pages(self, _urls):
+        for url in _urls:
+            page_content = self.get_page_content(url)
+            pagename = urlparse(url).netloc
+            self.write_to_file(pagename, page_content.text)
+            self.pages_to_parse -= 1
+            if self.pages_to_parse <= 0:
+                return
+        return
+
+    def count_words(self):
+        for file_path in self.files_to_read:
+            with open(file_path, 'r') as file:
+                text = file.read().lower()
+                text_as_list = re.findall(r'\w+', text)
+                for word in text_as_list:
+                    count = self.frequency.get(word, 0)
+                    self.frequency[word] = count + 1
+        return
 
     def run(self):
         try:
             urls_to_save = self.urls.pop()
             self.depth -= 1
             self.save_pages(urls_to_save)
-        except IndexError:
-            print(f'Все страницы сохранены')
+        except IndexError:  # since we using list of lists in self.urls
+            self.logger.info(f'Все страницы сохранены')
             # Open files
             # Count words
-        return
+        self.count_words()
 
-    def save_pages(self, _urls):
-        for url in _urls:
-            page_content = self.get_page_content(url)
-            pagename = urlparse(url).netloc
-            self.write_to_file(pagename, page_content)
-            self.pages_to_parse -= 1
-            if self.pages_to_parse <= 0:
-                return
-        return
-
-    @staticmethod
-    def write_to_file(_filename, _page_content):
-        __file_path = f'{PAGES_FOLDER}/{_filename}.html'
-        with open(__file_path, mode='w+') as file:
-            try:
-                file.write(_page_content.text)
-            except Exception as e:
-                print(f'Exception occured: {e}')
-        return
-
-    def get_page_content(self, _url):
-        return self.get(_url)
-
-    # def extract_urls(self, response):
-    #     result = []
-    #
-    #     for raw_link in soup.find_all('a'):
-    #         link = raw_link.get('href')
-    #         if link.startswith(self.url) and link != self.url:
-    #             result.append(link)
-    #     return result
+        return self.frequency
 
     def __repr__(self):
         return f'Client for {self.url}'
@@ -150,3 +166,4 @@ class HabrClient(BaseParser):
 if __name__ == '__main__':
     client = HabrClient()
     client.run()
+    print('frequency is:', client.frequency)
