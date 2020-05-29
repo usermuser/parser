@@ -93,12 +93,12 @@ class BaseParser:
 
 class HabrClient(BaseParser):
 
-    def __init__(self, depth=DEPTH, pages_to_parse=PAGES_TO_VISIT):
+    def __init__(self, depth=DEPTH, pages_to_visit=PAGES_TO_VISIT):
         super().__init__()
         self.depth = depth
         self.pages = List
         self.delay = DELAY
-        self.pages_to_parse = pages_to_parse
+        self.pages_to_visit = pages_to_visit
         self.urls = [[self.url]]
         self.files_to_read = []
         self.prepositions = ('на', 'в')
@@ -115,9 +115,9 @@ class HabrClient(BaseParser):
     #         _response = self.get(url)
     #         _pagename = urlparse(url).netloc
     #         self.write_to_file(_pagename, _response.text)
-    #         self.pages_to_parse -= 1
+    #         self.pages_to_visit -= 1
     #
-    #         if self.pages_to_parse <= 0:
+    #         if self.pages_to_visit <= 0:
     #             return
     #
     #         if self.depth > 0:
