@@ -130,13 +130,13 @@ class HabrClient(BaseParser):
             _pagename = urlparse(url).netloc
             self.write_to_file(_pagename, _response.text)
             self.pages_to_parse -= 1
+
             if self.pages_to_parse <= 0:
                 return
 
             if self.depth > 0:
                 _urls = self.extract_links(_response)
                 _urls_to_add.extend(_urls)
-
         self.urls.append(_urls_to_add)
         return
 
@@ -149,18 +149,25 @@ class HabrClient(BaseParser):
             self.logger.info(f'Все страницы сохранены')
             # Open files
             # Count words
-        self.count_words() # todo change to count only words that we need
+        self.count_words()  # todo change to count only words that we need
         return self.frequency
 
     def count_words(self):
         for file_path in self.files_to_read:
             with open(file_path, 'r') as file:
-                text = file.read().lower()
+                soup = BeautifulSoup(file, 'lxml')
+                text = soup.text.lower()
                 text_as_list = re.findall(r'\w+', text)
                 for word in text_as_list:
                     count = self.frequency.get(word, 0)
                     self.frequency[word] = count + 1
+        self.frequency = self.sort_words(self.frequency)
         return
+
+    @staticmethod
+    def sort_words(_dict):
+        return {k: v for k, v in sorted(_dict.items(), key=lambda item: item[1], reverse=True)}
+
 
     def __repr__(self):
         return f'Client for {self.url}'
@@ -169,4 +176,12 @@ class HabrClient(BaseParser):
 if __name__ == '__main__':
     client = HabrClient()
     client.run()
-    print('frequency is:', client.frequency)
+    print('frequency is:', client.frequency, sep='\n')
+    l = []
+    for i in client.frequency.items():
+        l.append(i)
+        if len(l) == 10:
+            break
+
+    for item in l:
+        print(item)
