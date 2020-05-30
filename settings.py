@@ -1,7 +1,7 @@
 import os
 
 DEPTH = 2
-PAGES_TO_VISIT = 5
+AMOUNT_PAGES_TO_VISIT = 5
 URL = 'https://habr.com/ru/'
 BASE_DIR = os.getcwd()
 PAGES_FOLDER = os.path.join(BASE_DIR, 'saved_pages')

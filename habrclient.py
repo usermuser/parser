@@ -10,7 +10,7 @@ import requests
 from settings import (
     DEPTH,
     URL,
-    PAGES_TO_VISIT,
+    AMOUNT_PAGES_TO_VISIT,
     RETRY_COUNT,
     RETRY_TIMEOUT,
     RETRY,
@@ -95,10 +95,10 @@ class BaseParser:
 
 class HabrClient(BaseParser):
 
-    def __init__(self, depth=DEPTH, pages_to_visit=PAGES_TO_VISIT):
+    def __init__(self, depth=DEPTH, amount_pages_to_visit=AMOUNT_PAGES_TO_VISIT):
         super().__init__()
         self.depth = depth
-        self.pages_to_visit = pages_to_visit
+        self.amount_pages_to_visit = amount_pages_to_visit
         self.urls = [[self.url]]
         self.files_to_read = []
         self.prepositions = PREPOSITIONS
@@ -130,7 +130,7 @@ class HabrClient(BaseParser):
 
     def run(self):
         self.clean_words_file()
-        while self.depth > 0 and self.pages_to_visit > 0:
+        while self.depth > 0 and self.amount_pages_to_visit > 0:
             urls = self.get_urls()
             if urls:
                 _result = []
@@ -144,9 +144,9 @@ class HabrClient(BaseParser):
                     words_as_list = self.filter_words(page_content)
                     self.result_words.extend(words_as_list)
                     self.add_to_words_results_file(words_as_list)
-                    self.pages_to_visit -= 1
+                    self.amount_pages_to_visit -= 1
 
-                    if (self.pages_to_visit <= 0):
+                    if self.amount_pages_to_visit <= 0:
                         self.depth = 0
                         self.logger.info(f'\nPages counter exhausted, visited: \n {self.visited_urls} urls')
                         self.frequency = self.count_words(self.result_words)  # count words in self.result_words
