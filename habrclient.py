@@ -10,7 +10,6 @@ import requests
 from settings import (
     DEPTH,
     URL,
-    DELAY,
     PAGES_TO_VISIT,
     RETRY_COUNT,
     RETRY_TIMEOUT,
@@ -99,7 +98,6 @@ class HabrClient(BaseParser):
     def __init__(self, depth=DEPTH, pages_to_visit=PAGES_TO_VISIT):
         super().__init__()
         self.depth = depth
-        self.delay = DELAY
         self.pages_to_visit = pages_to_visit
         self.urls = [[self.url]]
         self.files_to_read = []

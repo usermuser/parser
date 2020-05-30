@@ -1,7 +1,6 @@
 import os
 
 DEPTH = 2
-DELAY = 1.0
 PAGES_TO_VISIT = 5
 URL = 'https://habr.com/ru/'
 BASE_DIR = os.getcwd()
