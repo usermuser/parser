@@ -216,7 +216,6 @@ class HabrClient(BaseParser):
 
     @property
     def popular_words(self):
-        # todo check that self.frequency is not empty
         if len(self.frequency) == 0:
             self.logger.error('Frequency dictionary is empty')
             return
@@ -225,7 +224,7 @@ class HabrClient(BaseParser):
             result.append(word)
             if len(result) == self.pupular_words_limit:
                 return result
-        self.logger('Error occured in popular_words_method')
+        self.logger.error('\nError occured in popular_words_method')
         return
 
     def __repr__(self):
@@ -234,15 +233,14 @@ class HabrClient(BaseParser):
 
 if __name__ == '__main__':
     client = HabrClient()
-
     client.run()
-
+    print(client.popular_words)
     # *** basic tests ***
-    alist = []
-    for i in client.frequency.items():
-        alist.append(i)
-        if len(alist) == 10:
-            break
-
-    for item in alist:
-        print(item)
+    # alist = []
+    # for i in client.frequency.items():
+    #     alist.append(i)
+    #     if len(alist) == 10:
+    #         break
+    #
+    # for item in alist:
+    #     print(item)
