@@ -2,7 +2,6 @@ import json
 import logging
 import re
 import time
-import pickle
 from urllib.parse import urlparse
 from typing import List
 
@@ -22,6 +21,7 @@ from settings import (
     BASE_DIR,
     WORDS_FILE,
     DELAY_BETWEEN_REQUEST,
+    POPULAR_WORDS_LIMIT,
 
 )
 
@@ -98,7 +98,6 @@ class HabrClient(BaseParser):
     def __init__(self, depth=DEPTH, pages_to_visit=PAGES_TO_VISIT):
         super().__init__()
         self.depth = depth
-        self.pages = List
         self.delay = DELAY
         self.pages_to_visit = pages_to_visit
         self.urls = [[self.url]]
@@ -109,6 +108,7 @@ class HabrClient(BaseParser):
         self.visited_urls = []
         self.suffix_number = 0
         self.result_words = []
+        self.pupular_words_limit = POPULAR_WORDS_LIMIT
 
     def save_page(self, _url, _page_content):
         """Save url as html page"""
@@ -212,6 +212,20 @@ class HabrClient(BaseParser):
     def clean_words_file(self):
         with open(self.words, 'w') as file:
             file.truncate(0)
+        return
+
+    @property
+    def popular_words(self):
+        # todo check that self.frequency is not empty
+        if len(self.frequency) == 0:
+            self.logger.error('Frequency dictionary is empty')
+            return
+        result = []
+        for word in self.frequency.items():
+            result.append(word)
+            if len(result) == self.pupular_words_limit:
+                return result
+        self.logger('Error occured in popular_words_method')
         return
 
     def __repr__(self):
