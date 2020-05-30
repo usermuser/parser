@@ -130,46 +130,62 @@ class HabrClient(BaseParser):
             self.logger.info(f'[INFO] All pages saved')
             return
 
+    def domain_is_valid(self):
+        """Check if provided domain is valid"""
+        try:
+            response = self.get(self.url)
+            soup = BeautifulSoup(response.text, 'lxml')
+            return True
+        except AttributeError:
+            self.logger.error(f'Provided url is not valid, try with "https:" prefix or with "www" prefix')
+            return
+
     def run(self):
-        self.clean_words_file()
-        while self.depth > 0 and self.amount_pages_to_visit > 0:
-            start = time.time()
-            urls = self.get_urls()
-            if urls:
-                _result = []
-                _result_words = []
-                for url in urls:
-                    time.sleep(DELAY_BETWEEN_REQUEST)
-                    page_content = self.get(url)
-                    _result.extend(self.extract_links_from_page(page_content))
-                    # self.save_page(url, page_content)   # we don't have to save pages anymore
-                    self.visited_urls.append(url)
-                    words_as_list = self.filter_words(page_content)
-                    self.result_words.extend(words_as_list)
-                    # self.add_to_words_results_file(words_as_list)   # we don't have to save words in file anymore
-                    self.amount_pages_to_visit -= 1
+        if self.domain_is_valid():
+            self.clean_words_file()
+            while self.depth > 0 and self.amount_pages_to_visit > 0:
+                start = time.time()
+                urls = self.get_urls()
+                if urls:
+                    _result = []
+                    _result_words = []
+                    for url in urls:
+                        time.sleep(DELAY_BETWEEN_REQUEST)
+                        page_content = self.get(url)
+                        _result.extend(self.extract_links_from_page(page_content))
+                        # self.save_page(url, page_content)   # we don't have to save pages anymore
+                        self.visited_urls.append(url)
+                        words_as_list = self.filter_words(page_content)
+                        self.result_words.extend(words_as_list)
+                        # self.add_to_words_results_file(words_as_list)   # we don't have to save words in file anymore
+                        self.amount_pages_to_visit -= 1
 
-                    elapsed = time.time() - start
-                    if elapsed > self.time_limit:
-                        self.logger.info(f'[INFO] Time is over. Elapsed time: {elapsed}, time limit: {self.time_limit}')
-                        self.amount_pages_to_visit = 0
+                        elapsed = time.time() - start
+                        if elapsed > self.time_limit:
+                            self.logger.info(f'[INFO] Time is over. Elapsed time: {elapsed}, time limit: {self.time_limit}')
+                            self.amount_pages_to_visit = 0
 
-                    if self.amount_pages_to_visit <= 0:
-                        self.depth = 0
-                        self.logger.info(f'\nPages counter exhausted, visited: \n {self.visited_urls} urls')
-                        self.frequency = self.count_words(self.result_words)  # count words in self.result_words
-                        return
+                        if self.amount_pages_to_visit <= 0:
+                            self.depth = 0
+                            self.logger.info(f'\nPages counter exhausted, visited: \n {self.visited_urls} urls')
+                            self.frequency = self.count_words(self.result_words)  # count words in self.result_words
+                            return
 
-                self.depth -= 1
-                self.urls.append(_result)
-        return
+                    self.depth -= 1
+                    self.urls.append(_result)
+            return
+        else:
+            self.logger.error(f'Provided domain is not valid: {self.url}')
+            return
+
 
     def extract_links_from_page(self, response):
         result = []
         soup = BeautifulSoup(response.text, 'lxml')
+        self.amount_pages_to_visit = 0
+
         for raw_link in soup.find_all('a'):
             link = raw_link.get('href')
-            # print(f'-------------  link: {link}, \n raw_link: {raw_link}')
             if not link:
                 continue
             if link.startswith(self.url) and link not in self.visited_urls:
