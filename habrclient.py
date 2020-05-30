@@ -22,6 +22,7 @@ from settings import (
     WORDS_FILE,
     DELAY_BETWEEN_REQUEST,
     POPULAR_WORDS_LIMIT,
+    PREPOSITIONS,
 
 )
 
@@ -102,7 +103,7 @@ class HabrClient(BaseParser):
         self.pages_to_visit = pages_to_visit
         self.urls = [[self.url]]
         self.files_to_read = []
-        self.prepositions = ('на', 'в')
+        self.prepositions = PREPOSITIONS
         self.frequency = {}
         self.words = WORDS_FILE
         self.visited_urls = []
