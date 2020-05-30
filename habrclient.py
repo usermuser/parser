@@ -145,9 +145,9 @@ class HabrClient(BaseParser):
                     words_as_list = self.filter_words(page_content)
                     self.result_words.extend(words_as_list)
                     self.add_to_words_results_file(words_as_list)
-
                     self.pages_to_visit -= 1
-                    if self.pages_to_visit <= 0:
+
+                    if (self.pages_to_visit <= 0):
                         self.depth = 0
                         self.logger.info(f'Pages counter exhausted, visited {self.visited_urls} urls')
                         self.frequency = self.count_words(self.result_words)  # count words in self.result_words
@@ -175,7 +175,7 @@ class HabrClient(BaseParser):
         _soup = BeautifulSoup(_page_content.text, 'lxml')
         _text = _soup.text.lower()
         _words_list = re.findall(r'\w+', _text)
-        result = [word for word in _words_list if word not in self.prepositions]
+        result = [word for word in _words_list if word not in self.prepositions and not word.isdigit()]
         return result
 
     def add_to_words_results_file(self, _words_as_list: List) -> None:
@@ -223,12 +223,12 @@ if __name__ == '__main__':
 
     client.run()
 
-    # # *** basic tests ***
-    # alist = []
-    # for i in client.frequency.items():
-    #     alist.append(i)
-    #     if len(alist) == 10:
-    #         break
-    #
-    # for item in alist:
-    #     print(item)
+    # *** basic tests ***
+    alist = []
+    for i in client.frequency.items():
+        alist.append(i)
+        if len(alist) == 10:
+            break
+
+    for item in alist:
+        print(item)
