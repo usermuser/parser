@@ -1,8 +1,9 @@
 import os
+from utils import parse_command_line
 
 DEPTH = 2
 AMOUNT_PAGES_TO_VISIT = 5
-URL = 'https://habr.com/ru/'
+URL = parse_command_line()
 BASE_DIR = os.getcwd()
 PAGES_FOLDER = os.path.join(BASE_DIR, 'saved_pages')
 WORDS_FILE = 'words.txt'
