@@ -255,7 +255,7 @@ class HabrClient(BaseParser):
             for word in self.popular_words:
                 print(word)
         else:
-            self.logger.error('There is no words to count')
+            self.logger.error('There is no words to count')K
 
     def __repr__(self):
         return f'Client for {self.url}'
