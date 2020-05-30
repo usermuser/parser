@@ -150,7 +150,7 @@ class HabrClient(BaseParser):
 
                     if (self.pages_to_visit <= 0):
                         self.depth = 0
-                        self.logger.info(f'Pages counter exhausted, visited {self.visited_urls} urls')
+                        self.logger.info(f'\nPages counter exhausted, visited: \n {self.visited_urls} urls')
                         self.frequency = self.count_words(self.result_words)  # count words in self.result_words
                         return
 
