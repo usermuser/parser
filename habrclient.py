@@ -227,6 +227,10 @@ class HabrClient(BaseParser):
         self.logger.error('\nError occured in popular_words_method')
         return
 
+    def show_words(self):
+        for word in self.popular_words:
+            print(word)
+
     def __repr__(self):
         return f'Client for {self.url}'
 
@@ -234,13 +238,4 @@ class HabrClient(BaseParser):
 if __name__ == '__main__':
     client = HabrClient()
     client.run()
-    print(client.popular_words)
-    # *** basic tests ***
-    # alist = []
-    # for i in client.frequency.items():
-    #     alist.append(i)
-    #     if len(alist) == 10:
-    #         break
-    #
-    # for item in alist:
-    #     print(item)
+    client.show_words()
