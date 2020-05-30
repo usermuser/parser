@@ -22,6 +22,7 @@ from settings import (
     DELAY_BETWEEN_REQUEST,
     POPULAR_WORDS_LIMIT,
     PREPOSITIONS,
+    TIME_LIMIT,
 
 )
 
@@ -107,7 +108,8 @@ class HabrClient(BaseParser):
         self.visited_urls = []
         self.suffix_number = 0
         self.result_words = []
-        self.pupular_words_limit = POPULAR_WORDS_LIMIT
+        self.popular_words_limit = POPULAR_WORDS_LIMIT
+        self.time_limit = TIME_LIMIT
 
     def save_page(self, _url, _page_content):
         """Save url as html page"""
@@ -131,6 +133,7 @@ class HabrClient(BaseParser):
     def run(self):
         self.clean_words_file()
         while self.depth > 0 and self.amount_pages_to_visit > 0:
+            start = time.time()
             urls = self.get_urls()
             if urls:
                 _result = []
@@ -139,12 +142,17 @@ class HabrClient(BaseParser):
                     time.sleep(DELAY_BETWEEN_REQUEST)
                     page_content = self.get(url)
                     _result.extend(self.extract_links_from_page(page_content))
-                    self.save_page(url, page_content)
+                    # self.save_page(url, page_content)   # we don't have to save pages anymore
                     self.visited_urls.append(url)
                     words_as_list = self.filter_words(page_content)
                     self.result_words.extend(words_as_list)
-                    self.add_to_words_results_file(words_as_list)
+                    # self.add_to_words_results_file(words_as_list)   # we don't have to save words in file anymore
                     self.amount_pages_to_visit -= 1
+
+                    elapsed = time.time() - start
+                    if elapsed > self.time_limit:
+                        self.logger.info(f'[INFO] Time is over. Elapsed time: {elapsed}, time limit: {self.time_limit}')
+                        self.amount_pages_to_visit = 0
 
                     if self.amount_pages_to_visit <= 0:
                         self.depth = 0
@@ -221,7 +229,7 @@ class HabrClient(BaseParser):
         result = []
         for word in self.frequency.items():
             result.append(word)
-            if len(result) == self.pupular_words_limit:
+            if len(result) == self.popular_words_limit:
                 return result
         self.logger.error('\nError occured in popular_words_method')
         return
