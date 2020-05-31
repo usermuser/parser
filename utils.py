@@ -1,7 +1,7 @@
 import argparse
 
 URL = 'https://habr.com/ru/'
-TIME_LIMIT = 200  # in seconds,  10mins = 600, 2mins = 120
+TIME_LIMIT = 20  # in seconds,  10mins = 600, 2mins = 120
 
 
 def parse_command_line():

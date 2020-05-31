@@ -13,7 +13,6 @@ from settings import (
     RETRY,
     REPEAT_TIMEOUT,
     RETRY_CODES,
-    WORDS_FILE,
     DELAY_BETWEEN_REQUEST,
     POPULAR_WORDS_LIMIT,
     PREPOSITIONS,
@@ -95,7 +94,6 @@ class HabrClient(BaseParser):
         super().__init__()
         self.prepositions = PREPOSITIONS
         self.frequency = {}
-        self.words = WORDS_FILE
         self.visited_urls = []
         self.result_words = []
         self.popular_words_limit = POPULAR_WORDS_LIMIT

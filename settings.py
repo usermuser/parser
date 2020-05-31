@@ -5,7 +5,6 @@ URL = args['domain']
 TIME_LIMIT = args['time_limit']
 BASE_DIR = os.getcwd()
 PAGES_FOLDER = os.path.join(BASE_DIR, 'saved_pages')
-WORDS_FILE = 'words.txt'
 DELAY_BETWEEN_REQUEST = 0.3
 POPULAR_WORDS_LIMIT = 10
 PREPOSITIONS = ('а-ля', 'без', 'безо', 'близ', 'в', 'вблизи', 'ввиду', 'вглубь', 'взамен',
