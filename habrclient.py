@@ -2,22 +2,17 @@ import json
 import logging
 import re
 import time
-from urllib.parse import urlparse
 from typing import List
 
 from bs4 import BeautifulSoup
 import requests
 from settings import (
-    DEPTH,
     URL,
-    AMOUNT_PAGES_TO_VISIT,
     RETRY_COUNT,
     RETRY_TIMEOUT,
     RETRY,
     REPEAT_TIMEOUT,
     RETRY_CODES,
-    PAGES_FOLDER,
-    BASE_DIR,
     WORDS_FILE,
     DELAY_BETWEEN_REQUEST,
     POPULAR_WORDS_LIMIT,
@@ -96,93 +91,63 @@ class BaseParser:
 
 class HabrClient(BaseParser):
 
-    def __init__(self, depth=DEPTH, amount_pages_to_visit=AMOUNT_PAGES_TO_VISIT):
+    def __init__(self):
         super().__init__()
-        self.depth = depth
-        self.amount_pages_to_visit = amount_pages_to_visit
-        self.urls = [[self.url]]
-        self.files_to_read = []
         self.prepositions = PREPOSITIONS
         self.frequency = {}
         self.words = WORDS_FILE
         self.visited_urls = []
-        self.suffix_number = 0
         self.result_words = []
         self.popular_words_limit = POPULAR_WORDS_LIMIT
         self.time_limit = TIME_LIMIT
+        self.urls_to_visit = []
 
-    def save_page(self, _url, _page_content):
-        """Save url as html page"""
-        _filename = urlparse(_url).netloc
-        self.write_to_file(_filename, _page_content, self.suffix_number)
-        self.suffix_number += 1
-        return
-
-    def get_urls(self):
-        """Retrieve urls from self.urls
-
-        we store all urls to work on in self.url
-        """
+    def is_valid(self, url) -> List:
+        if not url.startswith('http'):
+            url = f'https://{url}'
         try:
-            _urls_to_save = self.urls.pop()  # [ [url1, url2], [url2.1, url2.2] ... ]
-            return _urls_to_save
-        except IndexError:  # since we using list of lists in self.urls IndexError means 'we done'
-            self.logger.info(f'[INFO] All pages saved')
-            return
+            response = self.get(url)
+            time.sleep(DELAY_BETWEEN_REQUEST)
+            return [url]
 
-    def domain_is_valid(self):
-        """Check if provided domain is valid"""
-        try:
-            response = self.get(self.url)
-            soup = BeautifulSoup(response.text, 'lxml')
-            return True
-        except AttributeError:
-            self.logger.error(f'Provided url is not valid, try with "https:" prefix or with "www" prefix')
-            return
+        except self.REQUESTS_EXCEPTIONS:
+            self.logger.error(f'\nProvided domain is not valid, tried with "https:" prefix, no luck')
+            return []
 
     def run(self):
-        if self.domain_is_valid():
-            self.clean_words_file()
-            while self.depth > 0 and self.amount_pages_to_visit > 0:
-                start = time.time()
-                urls = self.get_urls()
-                if urls:
-                    _result = []
-                    _result_words = []
-                    for url in urls:
-                        time.sleep(DELAY_BETWEEN_REQUEST)
-                        page_content = self.get(url)
-                        _result.extend(self.extract_links_from_page(page_content))
-                        # self.save_page(url, page_content)   # we don't have to save pages anymore
-                        self.visited_urls.append(url)
-                        words_as_list = self.filter_words(page_content)
-                        self.result_words.extend(words_as_list)
-                        # self.add_to_words_results_file(words_as_list)   # we don't have to save words in file anymore
-                        self.amount_pages_to_visit -= 1
+        self.urls_to_visit = self.is_valid(self.url)
+        if self.urls_to_visit:
+            start = time.time()
 
-                        elapsed = time.time() - start
-                        if elapsed > self.time_limit:
-                            self.logger.info(f'[INFO] Time is over. Elapsed time: {elapsed}, time limit: {self.time_limit}')
-                            self.amount_pages_to_visit = 0
+            for url in self.urls_to_visit:
+                time.sleep(DELAY_BETWEEN_REQUEST)
 
-                        if self.amount_pages_to_visit <= 0:
-                            self.depth = 0
-                            self.logger.info(f'\nPages counter exhausted, visited: \n {self.visited_urls} urls')
-                            self.frequency = self.count_words(self.result_words)  # count words in self.result_words
-                            return
+                page_content = self.get(url)
+                _extracted_urls = self.extract_links_from_page(page_content)
+                self.urls_to_visit.extend(_extracted_urls)
 
-                    self.depth -= 1
-                    self.urls.append(_result)
-            return
+                self.visited_urls.append(url)
+                words_as_list = self.filter_words(page_content)
+                self.result_words.extend(words_as_list)
+                self.frequency = self.count_words(self.result_words)
+
+                elapsed = time.time() - start
+                if elapsed > self.time_limit:
+                    self.logger.info(
+                        f'[INFO] Time is over. Elapsed time: {elapsed}, time limit: {self.time_limit}')
+                    return
+
+                elif len(self.urls_to_visit) == 0:
+                    self.logger.info(f'\nNo more urls to visit, visited: \n {self.visited_urls} urls')
+
+                    return
         else:
-            self.logger.error(f'Provided domain is not valid: {self.url}')
-            return
-
+            self.logger.debug(f'\nNo more urls to visit')
+        return
 
     def extract_links_from_page(self, response):
         result = []
         soup = BeautifulSoup(response.text, 'lxml')
-        self.amount_pages_to_visit = 0
 
         for raw_link in soup.find_all('a'):
             link = raw_link.get('href')
@@ -201,25 +166,6 @@ class HabrClient(BaseParser):
         result = [word for word in _words_list if word not in self.prepositions and not word.isdigit()]
         return result
 
-    def add_to_words_results_file(self, _words_as_list: List) -> None:
-        self.logger.info(f'[INFO] Going to write words to file {self.words}')
-        with open(self.words, 'a+') as file:
-            for word in _words_as_list:
-                if word not in self.visited_urls:
-                    file.write(f'{word}\n')
-        return
-
-    @staticmethod
-    def write_to_file(_filename, _page_content, _number):
-        _file_path = f'{PAGES_FOLDER}/{_filename}_{_number}.html'
-        with open(_file_path, mode='w+') as file:
-            try:
-                file.write(_page_content.text)
-                logging.info(f'Page content succesfully written to {file}')
-            except Exception:
-                logging.exception(f'[ERROR] Couldn\'t write to file {file}')
-        return
-
     def count_words(self, words_list):
         _frequency = {}
         for word in words_list:
@@ -231,11 +177,6 @@ class HabrClient(BaseParser):
     @staticmethod
     def sort_words(_dict):
         return {k: v for k, v in sorted(_dict.items(), key=lambda item: item[1], reverse=True)}
-
-    def clean_words_file(self):
-        with open(self.words, 'w') as file:
-            file.truncate(0)
-        return
 
     @property
     def popular_words(self):
@@ -254,8 +195,10 @@ class HabrClient(BaseParser):
         if self.popular_words:
             for word in self.popular_words:
                 print(word)
+            return
         else:
-            self.logger.error('There is no words to count')K
+            self.logger.error('There is no words to count')
+            return
 
     def __repr__(self):
         return f'Client for {self.url}'

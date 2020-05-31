@@ -1,8 +1,6 @@
 import os
 from utils import args
 
-DEPTH = 29999
-AMOUNT_PAGES_TO_VISIT = 59999
 URL = args['domain']
 TIME_LIMIT = args['time_limit']
 BASE_DIR = os.getcwd()
