@@ -120,26 +120,30 @@ class HabrClient(BaseParser):
             start = time.time()
 
             for url in self.urls_to_visit:
-                time.sleep(DELAY_BETWEEN_REQUEST)
+                try:
+                    time.sleep(DELAY_BETWEEN_REQUEST)
 
-                page_content = self.get(url)
-                _extracted_urls = self.extract_links_from_page(page_content)
-                self.urls_to_visit.extend(_extracted_urls)
+                    page_content = self.get(url)
+                    _extracted_urls = self.extract_links_from_page(page_content)
+                    self.urls_to_visit.extend(_extracted_urls)
 
-                self.visited_urls.append(url)
-                words_as_list = self.filter_words(page_content)
-                self.result_words.extend(words_as_list)
-                self.frequency = self.count_words(self.result_words)
+                    self.visited_urls.append(url)
+                    words_as_list = self.filter_words(page_content)
+                    self.result_words.extend(words_as_list)
+                    self.frequency = self.count_words(self.result_words)
 
-                elapsed = time.time() - start
-                if elapsed > self.time_limit:
-                    self.logger.info(
-                        f'[INFO] Time is over. Elapsed time: {elapsed}, time limit: {self.time_limit}')
-                    return
+                    elapsed = time.time() - start
+                    if elapsed > self.time_limit:
+                        self.logger.info(
+                            f'[INFO] Time is over. Elapsed time: {elapsed}, time limit: {self.time_limit}')
+                        return
 
-                elif len(self.urls_to_visit) == 0:
-                    self.logger.info(f'\nNo more urls to visit, visited: \n {self.visited_urls} urls')
+                    elif len(self.urls_to_visit) == 0:
+                        self.logger.info(f'\nNo more urls to visit, visited: \n {self.visited_urls} urls')
+                        return
 
+                except KeyboardInterrupt:
+                    self.logger.info('Keyboard Interrupt received ')
                     return
         else:
             self.logger.debug(f'\nNo more urls to visit')
